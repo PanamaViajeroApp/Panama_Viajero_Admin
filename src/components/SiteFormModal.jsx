@@ -15,6 +15,7 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [zone, setZone] = useState('')
   const [isPacificRiviera, setIsPacificRiviera] = useState(false)
   const [location, setLocation] = useState('')
+  const [previewDescription, setPreviewDescription] = useState('')
   const [description, setDescription] = useState('')
   const [activities, setActivities] = useState('')
   const [mapUrl, setMapUrl] = useState(defaultMapUrl)
@@ -91,6 +92,7 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
         ? isPacificRiviera
         : false,
       location: location.trim(),
+      previewDescription: previewDescription.trim(),
       description: description.trim(),
       activities: activities
         .split(',')
@@ -227,14 +229,33 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
           </label>
 
           <label className="space-y-2 lg:col-span-2">
-            <span className="text-xs font-bold text-main">Descripcion</span>
+            <span className="text-xs font-bold text-main">Descripcion inicial</span>
             <textarea
               required
+              minLength="10"
+              maxLength="500"
+              value={previewDescription}
+              onChange={(event) => setPreviewDescription(event.target.value)}
+              rows="3"
+              className="surface-raised w-full resize-none rounded-xl border border-app p-4 text-sm leading-6 text-main outline-none focus:border-brand-blue"
+              placeholder="Texto breve que aparecera en la tarjeta del sitio."
+            />
+            <span className="block text-[11px] text-muted">
+              Se muestra en las tarjetas. Maximo 500 caracteres.
+            </span>
+          </label>
+
+          <label className="space-y-2 lg:col-span-2">
+            <span className="text-xs font-bold text-main">Descripcion completa</span>
+            <textarea
+              required
+              minLength="10"
+              maxLength="5000"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               rows="5"
               className="surface-raised w-full resize-none rounded-xl border border-app p-4 text-sm leading-6 text-main outline-none focus:border-brand-blue"
-              placeholder="Describe la experiencia y sus principales atractivos."
+              placeholder="Describe ampliamente la experiencia y sus principales atractivos."
             />
           </label>
 

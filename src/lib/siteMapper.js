@@ -36,6 +36,7 @@ export function mapApiSite(site) {
     provinceId: site.province.id,
     provinceSlug: site.province.slug,
     location: site.location,
+    previewDescription: site.previewDescription,
     description: site.description,
     author: site.author,
     updated: formatUpdatedAt(site.updatedAt),

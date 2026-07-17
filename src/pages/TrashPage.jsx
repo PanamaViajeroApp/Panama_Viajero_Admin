@@ -88,7 +88,9 @@ function TrashPage() {
                 </div>
 
                 <div className="flex flex-1 flex-col p-5">
-                  <p className="text-sm leading-6 text-muted">{site.description}</p>
+                  <p className="text-sm leading-6 text-muted">
+                    {site.previewDescription || site.description}
+                  </p>
 
                   <div className="mt-5 space-y-2 rounded-xl bg-[var(--surface-raised)] p-4 text-xs text-muted">
                     <p className="flex items-center gap-2">

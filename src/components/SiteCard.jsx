@@ -25,7 +25,9 @@ function SiteCard({ site, basePath, showSignature = false }) {
           {site.isPacificRiviera ? ' / Riviera Pacifica' : ''}
         </p>
         <h3 className="mt-2 font-display text-2xl text-main sm:text-3xl">{site.name}</h3>
-        <p className="mt-4 flex-1 text-sm leading-6 text-muted">{site.description}</p>
+        <p className="mt-4 flex-1 text-sm leading-6 text-muted">
+          {site.previewDescription || site.description}
+        </p>
         <p className="mt-5 text-sm font-bold italic text-brand-blue">{site.location}</p>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-app pt-4">

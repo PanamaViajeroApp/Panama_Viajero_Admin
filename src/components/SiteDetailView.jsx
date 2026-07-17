@@ -29,6 +29,9 @@ function SiteDetailView({
   const [isEditing, setIsEditing] = useState(editable)
   const [name, setName] = useState(site.name)
   const [location, setLocation] = useState(site.location)
+  const [previewDescription, setPreviewDescription] = useState(
+    site.previewDescription || site.description,
+  )
   const [description, setDescription] = useState(site.description)
   const [activities, setActivities] = useState(site.activities)
   const [newActivity, setNewActivity] = useState('')
@@ -44,6 +47,7 @@ function SiteDetailView({
   const getUpdates = () => ({
     name: name.trim(),
     location: location.trim(),
+    previewDescription: previewDescription.trim(),
     description: description.trim(),
     activities,
     mapUrl: mapUrl.trim(),
@@ -273,7 +277,23 @@ function SiteDetailView({
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-7">
             <section className="rounded-2xl border border-app bg-[var(--surface-raised)] p-5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-red">Descripcion</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-blue">Descripcion inicial</p>
+              {isEditing ? (
+                <textarea
+                  value={previewDescription}
+                  onChange={(event) => setPreviewDescription(event.target.value)}
+                  minLength="10"
+                  maxLength="500"
+                  rows="3"
+                  className="mt-4 w-full resize-none bg-transparent text-sm leading-7 text-main outline-none"
+                />
+              ) : (
+                <p className="mt-4 text-sm leading-7 text-muted">{previewDescription}</p>
+              )}
+            </section>
+
+            <section className="rounded-2xl border border-app bg-[var(--surface-raised)] p-5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-red">Descripcion completa</p>
               {isEditing ? (
                 <textarea
                   value={description}
