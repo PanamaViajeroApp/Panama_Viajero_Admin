@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
+  LuCircleAlert,
   LuBell,
   LuFileText,
   LuLayoutDashboard,
@@ -133,7 +134,13 @@ function Sidebar({ onNavigate, draftCount, trashCount, username, onLogout }) {
 
 function AdminShell() {
   const location = useLocation()
-  const { draftItems, trashItems } = useAdminData()
+  const {
+    draftItems,
+    trashItems,
+    contentLoading,
+    contentError,
+    clearContentError,
+  } = useAdminData()
   const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('pv-admin-theme') || 'dark')
@@ -242,7 +249,33 @@ function AdminShell() {
         </header>
 
         <main className="px-4 py-6 sm:px-6 sm:py-8 xl:px-10 xl:py-10">
-          <Outlet />
+          {contentError && (
+            <div className="mx-auto mb-5 flex max-w-[1500px] items-start gap-3 rounded-2xl border border-brand-red/30 bg-brand-red/10 px-4 py-3 text-sm text-brand-red">
+              <LuCircleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+              <p className="flex-1 font-semibold">{contentError}</p>
+              <button
+                type="button"
+                onClick={clearContentError}
+                className="cursor-pointer rounded-lg p-1 transition hover:bg-brand-red/10"
+                aria-label="Cerrar mensaje"
+              >
+                <LuX className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {contentLoading ? (
+            <div className="mx-auto max-w-[1500px] space-y-5">
+              <div className="surface-panel h-40 animate-pulse rounded-[1.75rem]" />
+              <div className="grid gap-5 md:grid-cols-3">
+                <div className="surface-panel h-64 animate-pulse rounded-[1.5rem]" />
+                <div className="surface-panel h-64 animate-pulse rounded-[1.5rem]" />
+                <div className="surface-panel h-64 animate-pulse rounded-[1.5rem]" />
+              </div>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>

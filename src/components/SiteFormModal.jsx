@@ -1,86 +1,41 @@
 import { useState } from 'react'
 import {
-  LuImagePlus,
+  LuCloudUpload,
   LuMapPinned,
-  LuPlus,
   LuX,
 } from 'react-icons/lu'
-import { provinces } from '../data/dashboardData.js'
 
 const defaultMapUrl = ''
 
-function createSlug(value) {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
+function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [name, setName] = useState('')
-  const [province, setProvince] = useState(provinces[0])
+  const [provinceId, setProvinceId] = useState(provinceOptions[0]?.id || '')
   const [zone, setZone] = useState('')
   const [isPacificRiviera, setIsPacificRiviera] = useState(false)
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
   const [activities, setActivities] = useState('')
   const [mapUrl, setMapUrl] = useState(defaultMapUrl)
-  const [bannerPreview, setBannerPreview] = useState('')
-  const [galleryPreviews, setGalleryPreviews] = useState([])
-  const [fileError, setFileError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const selectedProvince = provinceOptions.find(
+    (province) => province.id === provinceId,
+  )
 
-  const handleBannerChange = (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    if (file.type !== 'image/webp' && !file.name.toLowerCase().endsWith('.webp')) {
-      setFileError('La foto de fondo debe estar en formato WebP.')
-      event.target.value = ''
-      return
-    }
-
-    setFileError('')
-    setBannerPreview(URL.createObjectURL(file))
-  }
-
-  const handleGalleryChange = (event) => {
-    const files = Array.from(event.target.files || [])
-
-    if (files.some((file) => file.type !== 'image/webp' && !file.name.toLowerCase().endsWith('.webp'))) {
-      setFileError('Todas las imagenes de la galeria deben estar en formato WebP.')
-      event.target.value = ''
-      return
-    }
-
-    setFileError('')
-    setGalleryPreviews(files.map((file) => URL.createObjectURL(file)))
-  }
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
+    setSubmitting(true)
+    setSubmitError('')
 
-    const image = bannerPreview || fallbackImage
-    const gallery = galleryPreviews.length > 0
-      ? galleryPreviews
-      : [image]
-
-    onSubmit({
-      id: `${createSlug(name)}-${Date.now()}`,
+    const createdDraft = await onSubmit({
       name: name.trim(),
-      province,
-      zone: province === 'Colon' ? zone : '',
-      isPacificRiviera: ['Cocle', 'Panama Oeste'].includes(province)
+      province: provinceId,
+      zone: selectedProvince?.zoneMode === 'colon_coast' ? zone : null,
+      isPacificRiviera: selectedProvince?.supportsPacificRiviera
         ? isPacificRiviera
         : false,
       location: location.trim(),
       description: description.trim(),
-      author: 'Administrador',
-      updated: 'Ahora',
-      image,
-      gallery,
       activities: activities
         .split(',')
         .map((activity) => activity.trim())
@@ -88,7 +43,13 @@ function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
       mapUrl: mapUrl.trim(),
     })
 
-    onClose()
+    setSubmitting(false)
+
+    if (createdDraft) {
+      onClose()
+    } else {
+      setSubmitError('No se pudo crear el borrador. Revisa el mensaje mostrado en el panel.')
+    }
   }
 
   return (
@@ -131,23 +92,26 @@ function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
           <label className="space-y-2">
             <span className="text-xs font-bold text-main">Provincia</span>
             <select
-              value={province}
+              value={provinceId}
               onChange={(event) => {
-                setProvince(event.target.value)
-                if (event.target.value !== 'Colon') setZone('')
-                if (!['Cocle', 'Panama Oeste'].includes(event.target.value)) {
+                const nextProvince = provinceOptions.find(
+                  (province) => province.id === event.target.value,
+                )
+                setProvinceId(event.target.value)
+                if (nextProvince?.zoneMode !== 'colon_coast') setZone('')
+                if (!nextProvince?.supportsPacificRiviera) {
                   setIsPacificRiviera(false)
                 }
               }}
               className="surface-raised h-12 w-full cursor-pointer rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
             >
-              {provinces.map((provinceName) => (
-                <option key={provinceName} value={provinceName}>{provinceName}</option>
+              {provinceOptions.map((province) => (
+                <option key={province.id} value={province.id}>{province.name}</option>
               ))}
             </select>
           </label>
 
-          {province === 'Colon' && (
+          {selectedProvince?.zoneMode === 'colon_coast' && (
             <label className="space-y-2 lg:col-span-2">
               <span className="text-xs font-bold text-main">Zona de Colon</span>
               <select
@@ -157,13 +121,13 @@ function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
                 className="surface-raised h-12 w-full cursor-pointer rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
               >
                 <option value="" disabled>Selecciona una zona</option>
-                <option value="Costa Arriba">Costa Arriba</option>
-                <option value="Costa Abajo">Costa Abajo</option>
+                <option value="costa_arriba">Costa Arriba</option>
+                <option value="costa_abajo">Costa Abajo</option>
               </select>
             </label>
           )}
 
-          {['Cocle', 'Panama Oeste'].includes(province) && (
+          {selectedProvince?.supportsPacificRiviera && (
             <fieldset className="space-y-3 rounded-xl border border-app bg-[var(--surface-raised)] p-4 lg:col-span-2">
               <legend className="px-2 text-xs font-bold text-main">
                 Pertenece a Riviera Pacifica
@@ -243,35 +207,27 @@ function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
 
           <div className="space-y-2">
             <span className="text-xs font-bold text-main">Foto de fondo</span>
-            <label className="grid min-h-40 cursor-pointer place-items-center overflow-hidden rounded-xl border border-dashed border-brand-blue/45 bg-brand-blue/8 text-center">
-              {bannerPreview ? (
-                <img src={bannerPreview} alt="Vista previa del banner" className="h-40 w-full object-cover" />
-              ) : (
-                <span className="flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-blue">
-                  <LuImagePlus className="h-6 w-6" />
-                  Seleccionar banner
-                </span>
-              )}
-              <input type="file" accept="image/webp,.webp" onChange={handleBannerChange} className="sr-only" />
-            </label>
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-brand-blue/30 bg-brand-blue/6 text-center opacity-70">
+              <span className="flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-blue">
+                <LuCloudUpload className="h-6 w-6" />
+                Disponible al conectar R2
+              </span>
+            </div>
           </div>
 
           <div className="space-y-2">
             <span className="text-xs font-bold text-main">Galeria</span>
-            <label className="grid min-h-40 cursor-pointer place-items-center rounded-xl border border-dashed border-brand-red/40 bg-brand-red/8 text-center">
+            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-brand-red/30 bg-brand-red/6 text-center opacity-70">
               <span className="flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-red">
-                <LuPlus className="h-6 w-6" />
-                {galleryPreviews.length > 0
-                  ? `${galleryPreviews.length} imagenes seleccionadas`
-                  : 'Seleccionar imagenes'}
+                <LuCloudUpload className="h-6 w-6" />
+                Disponible al conectar R2
               </span>
-              <input type="file" multiple accept="image/webp,.webp" onChange={handleGalleryChange} className="sr-only" />
-            </label>
+            </div>
           </div>
 
-          {fileError && (
+          {submitError && (
             <p className="rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3 text-sm font-bold text-brand-red lg:col-span-2">
-              {fileError}
+              {submitError}
             </p>
           )}
         </div>
@@ -280,8 +236,12 @@ function SiteFormModal({ fallbackImage, onClose, onSubmit }) {
           <button type="button" onClick={onClose} className="h-11 cursor-pointer rounded-xl border border-app px-5 text-sm font-bold text-main">
             Cancelar
           </button>
-          <button type="submit" className="h-11 cursor-pointer rounded-xl bg-brand-red px-5 text-sm font-bold text-white">
-            Crear borrador
+          <button
+            type="submit"
+            disabled={submitting || !provinceId}
+            className="h-11 cursor-pointer rounded-xl bg-brand-red px-5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65"
+          >
+            {submitting ? 'Creando borrador' : 'Crear borrador'}
           </button>
         </div>
       </form>

@@ -22,7 +22,7 @@ function DashboardPage() {
         <div className="relative">
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-brand-red">Panel administrativo</p>
           <h2 className="mt-3 font-display text-4xl leading-[0.95] text-main sm:text-5xl xl:text-6xl">
-            Bienvenido Elahister
+            Bienvenido
           </h2>
         </div>
       </section>

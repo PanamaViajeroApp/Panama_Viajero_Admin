@@ -27,9 +27,15 @@ function formatDate(value) {
 }
 
 function TrashPage() {
-  const { trashItems, restoreSite, deleteSiteForever } = useAdminData()
+  const {
+    trashItems,
+    restoreSite,
+    deleteSiteForever,
+    destinationFilters,
+  } = useAdminData()
   const [selectedProvince, setSelectedProvince] = useState('Todas')
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [actionPending, setActionPending] = useState(false)
   const deferredProvince = useDeferredValue(selectedProvince)
   const filteredItems = deferredProvince === 'Todas'
     ? trashItems
@@ -56,6 +62,7 @@ function TrashPage() {
         value={selectedProvince}
         onChange={setSelectedProvince}
         resultCount={filteredItems.length}
+        options={destinationFilters}
       />
 
       {filteredItems.length > 0 ? (
@@ -101,14 +108,20 @@ function TrashPage() {
                   <div className="mt-5 flex flex-col gap-2 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => restoreSite(site.id)}
-                      className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 text-xs font-bold text-white"
+                      disabled={actionPending}
+                      onClick={async () => {
+                        setActionPending(true)
+                        await restoreSite(site.id)
+                        setActionPending(false)
+                      }}
+                      className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 text-xs font-bold text-white disabled:cursor-wait disabled:opacity-65"
                     >
                       <LuRotateCcw className="h-4 w-4" />
                       Restaurar
                     </button>
                     <button
                       type="button"
+                      disabled={actionPending}
                       onClick={() => setPendingDelete(site)}
                       className="inline-flex h-10 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-brand-red/35 bg-brand-red/10 px-4 text-xs font-bold text-brand-red"
                     >
@@ -149,11 +162,14 @@ function TrashPage() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  deleteSiteForever(pendingDelete.id)
-                  setPendingDelete(null)
+                disabled={actionPending}
+                onClick={async () => {
+                  setActionPending(true)
+                  const deleted = await deleteSiteForever(pendingDelete.id)
+                  setActionPending(false)
+                  if (deleted) setPendingDelete(null)
                 }}
-                className="h-11 cursor-pointer rounded-xl bg-brand-red px-4 text-sm font-bold text-white"
+                className="h-11 cursor-pointer rounded-xl bg-brand-red px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65"
               >
                 Eliminar definitivamente
               </button>

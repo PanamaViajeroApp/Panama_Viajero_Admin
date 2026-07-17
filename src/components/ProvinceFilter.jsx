@@ -1,7 +1,6 @@
 import { LuMapPinned } from 'react-icons/lu'
-import { destinationFilters } from '../data/dashboardData.js'
 
-function ProvinceFilter({ value, onChange, resultCount }) {
+function ProvinceFilter({ value, onChange, resultCount, options }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <label className="surface-panel flex h-12 w-full max-w-sm items-center gap-3 rounded-xl px-4">
@@ -13,7 +12,7 @@ function ProvinceFilter({ value, onChange, resultCount }) {
           className="w-full cursor-pointer bg-transparent text-sm font-bold text-main outline-none"
         >
           <option value="Todas">Todos los destinos</option>
-          {destinationFilters.map((province) => (
+          {options.map((province) => (
             <option key={province} value={province}>{province}</option>
           ))}
         </select>

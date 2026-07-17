@@ -9,7 +9,7 @@ function SiteCard({ site, basePath, showSignature = false }) {
     >
       <div className="relative aspect-[16/10] overflow-hidden bg-[var(--surface-soft)]">
         <img
-          src={site.image}
+          src={site.image || '/favicon.svg'}
           alt={site.name}
           className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
         />

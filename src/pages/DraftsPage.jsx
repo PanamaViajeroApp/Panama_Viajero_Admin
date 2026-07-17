@@ -6,7 +6,12 @@ import SiteFormModal from '../components/SiteFormModal.jsx'
 import { useAdminData } from '../context/adminDataContext.js'
 
 function DraftsPage() {
-  const { draftItems, addDraft } = useAdminData()
+  const {
+    draftItems,
+    addDraft,
+    provinceItems,
+    destinationFilters,
+  } = useAdminData()
   const [selectedProvince, setSelectedProvince] = useState('Todas')
   const [showForm, setShowForm] = useState(false)
   const deferredProvince = useDeferredValue(selectedProvince)
@@ -38,6 +43,7 @@ function DraftsPage() {
         value={selectedProvince}
         onChange={setSelectedProvince}
         resultCount={filteredDrafts.length}
+        options={destinationFilters}
       />
 
       {filteredDrafts.length > 0 ? (
@@ -60,7 +66,7 @@ function DraftsPage() {
 
       {showForm && (
         <SiteFormModal
-          fallbackImage={draftItems[0]?.image || '/favicon.svg'}
+          provinceOptions={provinceItems}
           onClose={() => setShowForm(false)}
           onSubmit={addDraft}
         />

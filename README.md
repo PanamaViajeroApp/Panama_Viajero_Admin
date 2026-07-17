@@ -25,5 +25,8 @@ yarn build
 - En produccion, `functions/api/[[path]].js` requiere un Service Binding llamado
   `API_SERVICE` que apunte al Worker de Panama Viajero.
 - En desarrollo, Vite envia `/api` a `http://127.0.0.1:8787`.
-- Los datos de contenido siguen siendo demostrativos hasta implementar sus
-  endpoints CRUD en D1 y el almacenamiento de imagenes en R2.
+- Borradores, sitios publicados, provincias, actividades y basurero se
+  sincronizan con D1 mediante `/api/v1/admin/*`.
+- Los usuarios y permisos siguen siendo demostrativos hasta completar sus
+  endpoints administrativos.
+- La seleccion de imagenes permanece deshabilitada hasta conectar R2.

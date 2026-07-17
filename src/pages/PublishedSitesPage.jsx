@@ -4,7 +4,7 @@ import SiteCard from '../components/SiteCard.jsx'
 import { useAdminData } from '../context/adminDataContext.js'
 
 function PublishedSitesPage() {
-  const { publishedItems } = useAdminData()
+  const { publishedItems, destinationFilters } = useAdminData()
   const [selectedProvince, setSelectedProvince] = useState('Todas')
   const deferredProvince = useDeferredValue(selectedProvince)
   const filteredSites = deferredProvince === 'Todas'
@@ -31,6 +31,7 @@ function PublishedSitesPage() {
         value={selectedProvince}
         onChange={setSelectedProvince}
         resultCount={filteredSites.length}
+        options={destinationFilters}
       />
 
       {filteredSites.length > 0 ? (

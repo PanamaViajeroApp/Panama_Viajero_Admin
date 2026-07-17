@@ -5,8 +5,17 @@ import { useAdminData } from '../context/adminDataContext.js'
 function DraftEditorPage() {
   const { draftId } = useParams()
   const navigate = useNavigate()
-  const { draftItems, updateDraft, publishDraft } = useAdminData()
+  const {
+    draftItems,
+    updateDraft,
+    publishDraft,
+    contentLoading,
+  } = useAdminData()
   const draft = draftItems.find((item) => item.id === draftId)
+
+  if (contentLoading) {
+    return <div className="surface-panel h-72 animate-pulse rounded-[1.5rem]" />
+  }
 
   if (!draft) {
     return <Navigate to="/borradores" replace />
@@ -17,9 +26,10 @@ function DraftEditorPage() {
       site={draft}
       editable
       onSave={(updates) => updateDraft(draft.id, updates)}
-      onPublish={(updates) => {
-        const publishedSite = publishDraft(draft.id, updates)
+      onPublish={async (updates) => {
+        const publishedSite = await publishDraft(draft.id, updates)
         if (publishedSite) navigate(`/sitios/${publishedSite.id}`)
+        return publishedSite
       }}
     />
   )

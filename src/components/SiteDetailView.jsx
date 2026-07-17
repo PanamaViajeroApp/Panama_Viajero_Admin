@@ -34,6 +34,7 @@ function SiteDetailView({
   const [mapPreviewUrl, setMapPreviewUrl] = useState(site.mapUrl)
   const [showPublishConfirm, setShowPublishConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [actionPending, setActionPending] = useState(false)
 
   const getUpdates = () => ({
     name: name.trim(),
@@ -43,17 +44,39 @@ function SiteDetailView({
     mapUrl: mapUrl.trim(),
   })
 
-  const handlePrimaryAction = () => {
+  const handlePrimaryAction = async () => {
     if (!isEditing) {
       setIsEditing(true)
       return
     }
 
+    setActionPending(true)
     setMapPreviewUrl(mapUrl)
-    onSave?.(getUpdates())
+    const savedSite = await onSave?.(getUpdates())
+    setActionPending(false)
 
-    if (!editable) {
+    if (!editable && savedSite) {
       setIsEditing(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    setActionPending(true)
+    const publishedSite = await onPublish?.(getUpdates())
+    setActionPending(false)
+
+    if (publishedSite) {
+      setShowPublishConfirm(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setActionPending(true)
+    const deletedSite = await onDelete?.()
+    setActionPending(false)
+
+    if (deletedSite) {
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -82,7 +105,8 @@ function SiteDetailView({
           <button
             type="button"
             onClick={handlePrimaryAction}
-            className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-red px-5 text-sm font-bold text-white transition hover:bg-[#df3858]"
+            disabled={actionPending}
+            className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-red px-5 text-sm font-bold text-white transition hover:bg-[#df3858] disabled:cursor-wait disabled:opacity-65"
           >
             {isEditing ? <LuSave className="h-4 w-4" /> : <LuPencil className="h-4 w-4" />}
             {isEditing ? 'Guardar cambios' : 'Editar sitio'}
@@ -92,6 +116,7 @@ function SiteDetailView({
             <button
               type="button"
               onClick={() => setShowPublishConfirm(true)}
+              disabled={actionPending}
               className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-blue px-5 text-sm font-bold text-white transition hover:bg-brand-blue/85"
             >
               <LuSend className="h-4 w-4" />
@@ -103,6 +128,7 @@ function SiteDetailView({
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
+              disabled={actionPending}
               className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-red/35 bg-brand-red/10 px-5 text-sm font-bold text-brand-red transition hover:bg-brand-red/15"
             >
               <LuTrash2 className="h-4 w-4" />
@@ -114,7 +140,7 @@ function SiteDetailView({
 
       <section className="surface-panel overflow-hidden rounded-[1.75rem]">
         <div className="relative aspect-[21/8] min-h-72 overflow-hidden">
-          <img src={site.image} alt={name} className="h-full w-full object-cover" />
+          <img src={site.image || '/favicon.svg'} alt={name} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">
@@ -352,11 +378,9 @@ function SiteDetailView({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onPublish?.(getUpdates())
-                  setShowPublishConfirm(false)
-                }}
-                className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 text-sm font-bold text-white"
+                onClick={handlePublish}
+                disabled={actionPending}
+                className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-blue px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65"
               >
                 <LuSend className="h-4 w-4" />
                 Confirmar publicacion
@@ -392,11 +416,9 @@ function SiteDetailView({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onDelete()
-                  setShowDeleteConfirm(false)
-                }}
-                className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-red px-4 text-sm font-bold text-white"
+                onClick={handleDelete}
+                disabled={actionPending}
+                className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-brand-red px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65"
               >
                 <LuTrash2 className="h-4 w-4" />
                 Enviar al basurero
