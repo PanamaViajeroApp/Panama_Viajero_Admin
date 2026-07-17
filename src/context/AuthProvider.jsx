@@ -54,6 +54,12 @@ function AuthProvider({ children }) {
     }
   }
 
+  const refreshUser = async () => {
+    const payload = await apiRequest('/api/v1/auth/me')
+    setUser(payload.user)
+    return payload.user
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -62,6 +68,7 @@ function AuthProvider({ children }) {
         login,
         changePassword,
         logout,
+        refreshUser,
       }}
     >
       {children}

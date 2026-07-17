@@ -4,10 +4,11 @@ import { LuKeyRound, LuUserPlus, LuX } from 'react-icons/lu'
 function UserFormModal({ existingUsers, onClose, onSubmit }) {
   const [username, setUsername] = useState('')
   const [temporaryPassword, setTemporaryPassword] = useState('')
-  const [type, setType] = useState('Usuario')
+  const [accountType, setAccountType] = useState('user')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const normalizedUsername = username.trim()
 
@@ -16,14 +17,15 @@ function UserFormModal({ existingUsers, onClose, onSubmit }) {
       return
     }
 
-    onSubmit({
+    setSubmitting(true)
+    const createdUser = await onSubmit({
       username: normalizedUsername,
       temporaryPassword,
-      type,
-      lastAccess: 'Nunca',
-      mustChangePassword: true,
+      accountType,
     })
-    onClose()
+    setSubmitting(false)
+
+    if (createdUser) onClose()
   }
 
   return (
@@ -64,24 +66,25 @@ function UserFormModal({ existingUsers, onClose, onSubmit }) {
             </span>
             <input
               required
-              minLength="8"
+              minLength="12"
+              maxLength="128"
               type="password"
               value={temporaryPassword}
               onChange={(event) => setTemporaryPassword(event.target.value)}
               className="surface-raised h-12 w-full rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
-              placeholder="Minimo 8 caracteres"
+              placeholder="Minimo 12 caracteres"
             />
           </label>
 
           <label className="space-y-2">
             <span className="text-xs font-bold text-main">Tipo de cuenta</span>
             <select
-              value={type}
-              onChange={(event) => setType(event.target.value)}
+              value={accountType}
+              onChange={(event) => setAccountType(event.target.value)}
               className="surface-raised h-12 w-full cursor-pointer rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
             >
-              <option value="Usuario">Usuario</option>
-              <option value="Co-administrador">Co-administrador</option>
+              <option value="user">Usuario</option>
+              <option value="co_administrator">Co-administrador</option>
             </select>
           </label>
 
@@ -95,11 +98,11 @@ function UserFormModal({ existingUsers, onClose, onSubmit }) {
         </div>
 
         <div className="flex flex-col-reverse gap-3 border-t border-app p-6 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="h-11 cursor-pointer rounded-xl border border-app px-5 text-sm font-bold text-main">
+          <button type="button" disabled={submitting} onClick={onClose} className="h-11 cursor-pointer rounded-xl border border-app px-5 text-sm font-bold text-main disabled:cursor-not-allowed disabled:opacity-50">
             Cancelar
           </button>
-          <button type="submit" className="h-11 cursor-pointer rounded-xl bg-brand-red px-5 text-sm font-bold text-white">
-            Crear usuario
+          <button type="submit" disabled={submitting} className="h-11 cursor-pointer rounded-xl bg-brand-red px-5 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65">
+            {submitting ? 'Creando...' : 'Crear usuario'}
           </button>
         </div>
       </form>

@@ -11,7 +11,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useAdminData } from '../context/adminDataContext.js'
 import { permissionLabels } from '../data/dashboardData.js'
 
-function PermissionValue({ allowed, editing, onToggle }) {
+function PermissionValue({ allowed, editing, disabled, onToggle }) {
   const styles = `inline-flex min-w-[92px] items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
     allowed
       ? 'bg-brand-blue/15 text-[#98a1f0]'
@@ -22,8 +22,9 @@ function PermissionValue({ allowed, editing, onToggle }) {
     return (
       <button
         type="button"
+        disabled={disabled}
         onClick={onToggle}
-        className={`${styles} cursor-pointer transition hover:ring-2 hover:ring-current/20`}
+        className={`${styles} cursor-pointer transition hover:ring-2 hover:ring-current/20 disabled:cursor-wait disabled:opacity-60`}
       >
         {allowed ? <LuCheck className="h-3 w-3" /> : <LuX className="h-3 w-3" />}
         {allowed ? 'Permitido' : 'Sin acceso'}
@@ -45,6 +46,8 @@ function PermissionsPage() {
   const { permissionItems, updatePermissions } = useAdminData()
   const [openMenu, setOpenMenu] = useState(null)
   const [editingUser, setEditingUser] = useState(null)
+  const [permissionDraft, setPermissionDraft] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!targetUsername) return
@@ -62,14 +65,28 @@ function PermissionsPage() {
     return () => cancelAnimationFrame(frame)
   }, [targetUsername])
 
-  const togglePermission = (username, permissionKey) => {
-    const permission = permissionItems.find((item) => item.username === username)
-    updatePermissions(username, { [permissionKey]: !permission[permissionKey] })
+  const togglePermission = (permissionKey) => {
+    setPermissionDraft((current) => ({
+      ...current,
+      [permissionKey]: !current[permissionKey],
+    }))
   }
 
-  const startEditing = (username) => {
-    setEditingUser(username)
+  const startEditing = (permission) => {
+    setEditingUser(permission.id)
+    setPermissionDraft(permission)
     setOpenMenu(null)
+  }
+
+  const savePermissions = async () => {
+    setSaving(true)
+    const updated = await updatePermissions(editingUser, permissionDraft)
+    setSaving(false)
+
+    if (updated) {
+      setEditingUser(null)
+      setPermissionDraft(null)
+    }
   }
 
   return (
@@ -112,8 +129,12 @@ function PermissionsPage() {
             </thead>
             <tbody className="divide-y divide-[var(--line)]">
               {permissionItems.map((permission) => {
-                const isEditing = editingUser === permission.username
+                const isEditing = editingUser === permission.id
                 const isTarget = targetUsername === permission.username
+                const displayedPermission = isEditing
+                  ? permissionDraft
+                  : permission
+                const protectedUser = permission.accountType === 'administrator'
 
                 return (
                   <tr
@@ -135,9 +156,10 @@ function PermissionsPage() {
                     {permissionLabels.map(({ key }) => (
                       <td key={key} className="px-1 py-4 text-center">
                         <PermissionValue
-                          allowed={permission[key]}
+                          allowed={displayedPermission[key]}
                           editing={isEditing}
-                          onToggle={() => togglePermission(permission.username, key)}
+                          disabled={saving}
+                          onToggle={() => togglePermission(key)}
                         />
                       </td>
                     ))}
@@ -145,28 +167,37 @@ function PermissionsPage() {
                       {isEditing ? (
                         <button
                           type="button"
-                          onClick={() => setEditingUser(null)}
-                          className="mx-auto grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-brand-blue text-white transition hover:bg-brand-blue/85"
+                          disabled={saving}
+                          onClick={savePermissions}
+                          className="mx-auto grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-brand-blue text-white transition hover:bg-brand-blue/85 disabled:cursor-wait disabled:opacity-60"
                           aria-label={`Guardar permisos de ${permission.username}`}
                         >
                           <LuSave className="h-4 w-4" />
                         </button>
                       ) : (
-                        <>
+                        protectedUser ? (
+                          <span
+                            className="mx-auto grid h-9 w-9 place-items-center text-brand-blue"
+                            aria-label="Permisos protegidos"
+                          >
+                            <LuShieldCheck className="h-5 w-5" />
+                          </span>
+                        ) : (
+                          <>
                           <button
                             type="button"
-                            onClick={() => setOpenMenu((current) => current === permission.username ? null : permission.username)}
+                            onClick={() => setOpenMenu((current) => current === permission.id ? null : permission.id)}
                             className="mx-auto grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-muted transition hover:bg-[var(--surface-soft)] hover:text-main"
                             aria-label={`Opciones de permisos de ${permission.username}`}
-                            aria-expanded={openMenu === permission.username}
+                            aria-expanded={openMenu === permission.id}
                           >
                             <LuEllipsisVertical className="h-5 w-5" />
                           </button>
-                          {openMenu === permission.username && (
+                          {openMenu === permission.id && (
                             <div className="absolute right-2 top-14 z-20 w-48 rounded-xl border border-app bg-[var(--surface)] p-1.5 shadow-2xl">
                               <button
                                 type="button"
-                                onClick={() => startEditing(permission.username)}
+                                onClick={() => startEditing(permission)}
                                 className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold text-main transition hover:bg-[var(--surface-raised)]"
                               >
                                 <LuPencil className="h-4 w-4 text-brand-blue" />
@@ -174,7 +205,8 @@ function PermissionsPage() {
                               </button>
                             </div>
                           )}
-                        </>
+                          </>
+                        )
                       )}
                     </td>
                   </tr>
@@ -186,8 +218,12 @@ function PermissionsPage() {
 
         <div className="divide-y divide-[var(--line)] xl:hidden">
           {permissionItems.map((permission) => {
-            const isEditing = editingUser === permission.username
+            const isEditing = editingUser === permission.id
             const isTarget = targetUsername === permission.username
+            const displayedPermission = isEditing
+              ? permissionDraft
+              : permission
+            const protectedUser = permission.accountType === 'administrator'
 
             return (
               <article
@@ -205,22 +241,26 @@ function PermissionsPage() {
                   </div>
                   <div className="relative">
                     {isEditing ? (
-                      <button type="button" onClick={() => setEditingUser(null)} className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-brand-blue text-white" aria-label="Guardar permisos">
+                      <button type="button" disabled={saving} onClick={savePermissions} className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-brand-blue text-white disabled:cursor-wait disabled:opacity-60" aria-label="Guardar permisos">
                         <LuSave className="h-4 w-4" />
                       </button>
+                    ) : protectedUser ? (
+                      <span className="grid h-9 w-9 place-items-center text-brand-blue" aria-label="Permisos protegidos">
+                        <LuShieldCheck className="h-5 w-5" />
+                      </span>
                     ) : (
                       <>
                         <button
                           type="button"
-                          onClick={() => setOpenMenu((current) => current === permission.username ? null : permission.username)}
+                          onClick={() => setOpenMenu((current) => current === permission.id ? null : permission.id)}
                           className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-muted hover:bg-[var(--surface-soft)]"
                           aria-label={`Opciones de permisos de ${permission.username}`}
                         >
                           <LuEllipsisVertical className="h-5 w-5" />
                         </button>
-                        {openMenu === permission.username && (
+                        {openMenu === permission.id && (
                           <div className="absolute right-0 top-11 z-20 w-48 rounded-xl border border-app bg-[var(--surface)] p-1.5 shadow-2xl">
-                            <button type="button" onClick={() => startEditing(permission.username)} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold text-main hover:bg-[var(--surface-raised)]">
+                            <button type="button" onClick={() => startEditing(permission)} className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-bold text-main hover:bg-[var(--surface-raised)]">
                               <LuPencil className="h-4 w-4 text-brand-blue" />
                               Editar permisos
                             </button>
@@ -236,9 +276,10 @@ function PermissionsPage() {
                     <div key={key} className="rounded-xl bg-[var(--surface-raised)] p-3">
                       <p className="mb-2 text-[9px] font-bold uppercase tracking-[0.13em] text-muted">{label}</p>
                       <PermissionValue
-                        allowed={permission[key]}
+                        allowed={displayedPermission[key]}
                         editing={isEditing}
-                        onToggle={() => togglePermission(permission.username, key)}
+                        disabled={saving}
+                        onToggle={() => togglePermission(key)}
                       />
                     </div>
                   ))}

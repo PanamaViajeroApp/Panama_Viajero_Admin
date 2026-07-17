@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AdminShell from './components/AdminShell.jsx'
+import PermissionGate from './components/PermissionGate.jsx'
 import { useAuth } from './context/authContext.js'
 import ChangePasswordPage from './pages/ChangePasswordPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
@@ -54,8 +55,22 @@ function App() {
         <Route path="/sitios" element={<PublishedSitesPage />} />
         <Route path="/sitios/:siteId" element={<PublishedSitePage />} />
         <Route path="/basurero" element={<TrashPage />} />
-        <Route path="/usuarios" element={<UsersPage />} />
-        <Route path="/permisos" element={<PermissionsPage />} />
+        <Route
+          path="/usuarios"
+          element={(
+            <PermissionGate permission="manage_users">
+              <UsersPage />
+            </PermissionGate>
+          )}
+        />
+        <Route
+          path="/permisos"
+          element={(
+            <PermissionGate permission="manage_permissions">
+              <PermissionsPage />
+            </PermissionGate>
+          )}
+        />
       </Route>
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -1,19 +1,20 @@
 import { useEffect, useState } from 'react'
-import {
-  userPermissions,
-  users,
-} from '../data/dashboardData.js'
 import { apiRequest } from '../lib/api.js'
 import { mapApiSite, mapApiSites } from '../lib/siteMapper.js'
+import {
+  mapApiPermission,
+  mapApiUser,
+  mapPermissionPayload,
+} from '../lib/userMapper.js'
 import { AdminDataContext } from './adminDataContext.js'
 import { useAuth } from './authContext.js'
 
 function AdminDataProvider({ children }) {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const [draftItems, setDraftItems] = useState([])
   const [publishedItems, setPublishedItems] = useState([])
-  const [userItems, setUserItems] = useState(users)
-  const [permissionItems, setPermissionItems] = useState(userPermissions)
+  const [userItems, setUserItems] = useState([])
+  const [permissionItems, setPermissionItems] = useState([])
   const [trashItems, setTrashItems] = useState([])
   const [provinceItems, setProvinceItems] = useState([])
   const [activityItems, setActivityItems] = useState([])
@@ -29,6 +30,8 @@ function AdminDataProvider({ children }) {
       setTrashItems([])
       setProvinceItems([])
       setActivityItems([])
+      setUserItems([])
+      setPermissionItems([])
       setContentError('')
       setContentLoading(false)
 
@@ -47,12 +50,16 @@ function AdminDataProvider({ children }) {
           trashResponse,
           provincesResponse,
           activitiesResponse,
+          usersResponse,
         ] = await Promise.all([
           apiRequest('/api/v1/admin/sites?status=draft'),
           apiRequest('/api/v1/admin/sites?status=published'),
           apiRequest('/api/v1/admin/sites/trash/items'),
           apiRequest('/api/v1/admin/catalog/provinces'),
           apiRequest('/api/v1/admin/catalog/activities'),
+          user.permissions.manage_users || user.permissions.manage_permissions
+            ? apiRequest('/api/v1/admin/users')
+            : Promise.resolve({ users: [] }),
         ])
 
         if (!active) return
@@ -62,6 +69,8 @@ function AdminDataProvider({ children }) {
         setTrashItems(mapApiSites(trashResponse.sites))
         setProvinceItems(provincesResponse.provinces)
         setActivityItems(activitiesResponse.activities)
+        setUserItems(usersResponse.users.map(mapApiUser))
+        setPermissionItems(usersResponse.users.map(mapApiPermission))
         setContentError('')
       } catch (error) {
         if (!active) return
@@ -209,33 +218,54 @@ function AdminDataProvider({ children }) {
     setContentError('')
   }
 
-  const addUser = (user) => {
-    setUserItems((current) => [...current, user])
-    setPermissionItems((current) => [
-      ...current,
-      {
-        username: user.username,
-        createSite: user.type === 'Co-administrador',
-        editPublished: user.type === 'Co-administrador',
-        editDraft: true,
-        deleteSite: user.type === 'Co-administrador',
-        publish: user.type === 'Co-administrador',
-      },
-    ])
-  }
+  const addUser = (newUser) => runContentAction(async () => {
+    const response = await apiRequest('/api/v1/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(newUser),
+    })
+    const createdUser = mapApiUser(response.user)
+    const createdPermissions = mapApiPermission(response.user)
 
-  const deleteUser = (username) => {
-    setUserItems((current) => current.filter((user) => user.username !== username))
-    setPermissionItems((current) => current.filter((permission) => permission.username !== username))
-  }
+    setUserItems((current) => [...current, createdUser])
+    setPermissionItems((current) => [...current, createdPermissions])
+    return createdUser
+  })
 
-  const updatePermissions = (username, nextPermissions) => {
-    setPermissionItems((current) => current.map((permission) => (
-      permission.username === username
-        ? { ...permission, ...nextPermissions }
-        : permission
-    )))
-  }
+  const deleteUser = (userId) => runContentAction(async () => {
+    await apiRequest(`/api/v1/admin/users/${userId}`, {
+      method: 'DELETE',
+    })
+    setUserItems((current) => current.filter((item) => item.id !== userId))
+    setPermissionItems((current) => (
+      current.filter((permission) => permission.id !== userId)
+    ))
+    return true
+  })
+
+  const updatePermissions = (userId, nextPermissions) => (
+    runContentAction(async () => {
+      const response = await apiRequest(
+        `/api/v1/admin/users/${userId}/permissions`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            permissions: mapPermissionPayload(nextPermissions),
+          }),
+        },
+      )
+      const updatedPermissions = mapApiPermission(response.user)
+
+      setPermissionItems((current) => current.map((permission) => (
+        permission.id === userId ? updatedPermissions : permission
+      )))
+
+      if (response.user.id === user.id) {
+        await refreshUser()
+      }
+
+      return updatedPermissions
+    })
+  )
 
   return (
     <AdminDataContext.Provider

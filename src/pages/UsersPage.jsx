@@ -55,6 +55,7 @@ function UsersPage() {
   const { userItems, addUser, deleteUser } = useAdminData()
   const [openMenu, setOpenMenu] = useState(null)
   const [pendingDelete, setPendingDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
   const [showForm, setShowForm] = useState(false)
 
   const goToPermissions = (username) => {
@@ -62,10 +63,15 @@ function UsersPage() {
     navigate(`/permisos?usuario=${encodeURIComponent(username)}`)
   }
 
-  const confirmDelete = () => {
-    deleteUser(pendingDelete.username)
-    setPendingDelete(null)
-    setOpenMenu(null)
+  const confirmDelete = async () => {
+    setDeleting(true)
+    const deleted = await deleteUser(pendingDelete.id)
+    setDeleting(false)
+
+    if (deleted) {
+      setPendingDelete(null)
+      setOpenMenu(null)
+    }
   }
 
   return (
@@ -162,11 +168,11 @@ function UsersPage() {
               Se eliminara a <strong className="text-main">{pendingDelete.username}</strong> de esta vista.
             </p>
             <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => setPendingDelete(null)} className="h-11 cursor-pointer rounded-xl border border-app px-4 text-sm font-bold text-main">
+              <button type="button" disabled={deleting} onClick={() => setPendingDelete(null)} className="h-11 cursor-pointer rounded-xl border border-app px-4 text-sm font-bold text-main disabled:cursor-not-allowed disabled:opacity-50">
                 Cancelar
               </button>
-              <button type="button" onClick={confirmDelete} className="h-11 cursor-pointer rounded-xl bg-brand-red px-4 text-sm font-bold text-white">
-                Eliminar usuario
+              <button type="button" disabled={deleting} onClick={confirmDelete} className="h-11 cursor-pointer rounded-xl bg-brand-red px-4 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-65">
+                {deleting ? 'Eliminando...' : 'Eliminar usuario'}
               </button>
             </div>
           </div>
