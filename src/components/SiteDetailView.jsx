@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   LuArrowLeft,
+  LuCloudUpload,
   LuImage,
   LuLink,
   LuMapPin,
@@ -21,6 +22,8 @@ function SiteDetailView({
   onSave,
   onPublish,
   onDelete,
+  onUploadImage,
+  onDeleteImage,
 }) {
   const backPath = editable ? '/borradores' : '/sitios'
   const [isEditing, setIsEditing] = useState(editable)
@@ -35,6 +38,8 @@ function SiteDetailView({
   const [showPublishConfirm, setShowPublishConfirm] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [actionPending, setActionPending] = useState(false)
+  const [imagePending, setImagePending] = useState(false)
+  const [imageError, setImageError] = useState('')
 
   const getUpdates = () => ({
     name: name.trim(),
@@ -94,6 +99,59 @@ function SiteDetailView({
     setActivities((current) => current.filter((activity) => activity !== activityToRemove))
   }
 
+  const validateImageFiles = (files, maximum = 30) => {
+    if (files.length > maximum) {
+      return `Puedes seleccionar un maximo de ${maximum} imagenes.`
+    }
+    if (files.some((file) => (
+      file.type !== 'image/webp'
+      || !file.name.toLowerCase().endsWith('.webp')
+    ))) {
+      return 'Solo se permiten imagenes WebP.'
+    }
+    if (files.some((file) => file.size > 10 * 1024 * 1024)) {
+      return 'Cada imagen debe pesar 10 MB o menos.'
+    }
+    return ''
+  }
+
+  const uploadImages = async (event, imageType) => {
+    const files = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (files.length === 0) return
+
+    const error = validateImageFiles(files, imageType === 'banner' ? 1 : 30)
+    if (error) {
+      setImageError(error)
+      return
+    }
+
+    setImagePending(true)
+    setImageError('')
+
+    for (let index = 0; index < files.length; index += 1) {
+      const result = await onUploadImage?.(
+        files[index],
+        imageType,
+        site.galleryItems.length + index,
+      )
+      if (!result) {
+        setImageError('No se pudieron subir todas las imagenes.')
+        break
+      }
+    }
+
+    setImagePending(false)
+  }
+
+  const deleteGalleryImage = async (imageId) => {
+    setImagePending(true)
+    setImageError('')
+    const result = await onDeleteImage?.(imageId)
+    if (!result) setImageError('No se pudo eliminar la imagen.')
+    setImagePending(false)
+  }
+
   return (
     <div className="stagger-in mx-auto max-w-[1250px] space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -142,6 +200,19 @@ function SiteDetailView({
         <div className="relative aspect-[21/8] min-h-72 overflow-hidden">
           <img src={site.image || '/favicon.svg'} alt={name} className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent" />
+          {isEditing && onUploadImage && (
+            <label className="absolute right-5 top-5 z-10 inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-black/55 px-4 text-xs font-bold text-white backdrop-blur-md transition hover:bg-black/70">
+              <LuCloudUpload className="h-4 w-4" />
+              {imagePending ? 'Subiendo' : 'Cambiar fondo'}
+              <input
+                type="file"
+                accept="image/webp,.webp"
+                disabled={imagePending}
+                onChange={(event) => uploadImages(event, 'banner')}
+                className="sr-only"
+              />
+            </label>
+          )}
           <div className="absolute inset-x-0 bottom-0 p-6 sm:p-8">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/70">
               {editable ? 'Borrador de sitio' : 'Sitio publicado'}
@@ -268,23 +339,49 @@ function SiteDetailView({
             <section>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-red">Galeria</p>
-                <span className="text-xs text-muted">{site.gallery.length} imagen</span>
+                <span className="text-xs text-muted">
+                  {site.galleryItems.length} {site.galleryItems.length === 1 ? 'imagen' : 'imagenes'}
+                </span>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {site.gallery.map((image, index) => (
-                  <div key={`${image}-${index}`} className="aspect-[4/3] overflow-hidden rounded-xl bg-[var(--surface-soft)]">
-                    <img src={image} alt={`${name} ${index + 1}`} className="h-full w-full object-cover" />
+                {site.galleryItems.map((image, index) => (
+                  <div key={image.id} className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-[var(--surface-soft)]">
+                    <img src={image.url} alt={`${name} ${index + 1}`} className="h-full w-full object-cover" />
+                    {isEditing && onDeleteImage && (
+                      <button
+                        type="button"
+                        disabled={imagePending}
+                        onClick={() => deleteGalleryImage(image.id)}
+                        className="absolute right-2 top-2 grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-black/60 text-white opacity-0 backdrop-blur-sm transition hover:bg-brand-red group-hover:opacity-100 focus:opacity-100 disabled:cursor-wait"
+                        aria-label={`Eliminar imagen ${index + 1}`}
+                      >
+                        <LuTrash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
-                {isEditing && (
-                  <button type="button" className="grid aspect-[4/3] cursor-pointer place-items-center rounded-xl border border-dashed border-brand-blue/50 bg-brand-blue/8 text-brand-blue">
+                {isEditing && onUploadImage && (
+                  <label className="grid aspect-[4/3] cursor-pointer place-items-center rounded-xl border border-dashed border-brand-blue/50 bg-brand-blue/8 text-brand-blue transition hover:border-brand-blue">
                     <span className="flex flex-col items-center gap-2 text-xs font-bold">
                       <LuImage className="h-5 w-5" />
-                      Subir imagen
+                      {imagePending ? 'Subiendo imagenes' : 'Subir imagen'}
                     </span>
-                  </button>
+                    <input
+                      type="file"
+                      accept="image/webp,.webp"
+                      multiple
+                      disabled={imagePending}
+                      onChange={(event) => uploadImages(event, 'gallery')}
+                      className="sr-only"
+                    />
+                  </label>
                 )}
               </div>
+              {imageError && (
+                <p className="mt-3 rounded-xl border border-brand-red/30 bg-brand-red/10 px-4 py-3 text-xs font-bold text-brand-red">
+                  {imageError}
+                </p>
+              )}
             </section>
           </div>
 

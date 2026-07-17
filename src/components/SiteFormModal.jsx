@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   LuCloudUpload,
   LuMapPinned,
@@ -6,6 +6,8 @@ import {
 } from 'react-icons/lu'
 
 const defaultMapUrl = ''
+const maxImageBytes = 10 * 1024 * 1024
+const maxGalleryImages = 30
 
 function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [name, setName] = useState('')
@@ -16,11 +18,65 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [description, setDescription] = useState('')
   const [activities, setActivities] = useState('')
   const [mapUrl, setMapUrl] = useState(defaultMapUrl)
+  const [bannerFile, setBannerFile] = useState(null)
+  const [galleryFiles, setGalleryFiles] = useState([])
+  const [bannerPreview, setBannerPreview] = useState('')
+  const [galleryPreviews, setGalleryPreviews] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const selectedProvince = provinceOptions.find(
     (province) => province.id === provinceId,
   )
+
+  useEffect(() => {
+    if (!bannerFile) {
+      setBannerPreview('')
+      return undefined
+    }
+
+    const previewUrl = URL.createObjectURL(bannerFile)
+    setBannerPreview(previewUrl)
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [bannerFile])
+
+  useEffect(() => {
+    const previewUrls = galleryFiles.map((file) => URL.createObjectURL(file))
+    setGalleryPreviews(previewUrls)
+    return () => previewUrls.forEach((url) => URL.revokeObjectURL(url))
+  }, [galleryFiles])
+
+  const validateFiles = (files, maximum) => {
+    if (files.length > maximum) {
+      return `Puedes seleccionar un maximo de ${maximum} imagenes.`
+    }
+
+    const invalidFormat = files.find((file) => (
+      file.type !== 'image/webp'
+      || !file.name.toLowerCase().endsWith('.webp')
+    ))
+    if (invalidFormat) return 'Solo se permiten imagenes en formato WebP.'
+
+    const oversized = files.find((file) => file.size > maxImageBytes)
+    if (oversized) return 'Cada imagen debe pesar 10 MB o menos.'
+
+    return ''
+  }
+
+  const handleBannerChange = (event) => {
+    const file = event.target.files?.[0] || null
+    const error = file ? validateFiles([file], 1) : ''
+    setSubmitError(error)
+    setBannerFile(error ? null : file)
+    if (error) event.target.value = ''
+  }
+
+  const handleGalleryChange = (event) => {
+    const files = Array.from(event.target.files || [])
+    const error = validateFiles(files, maxGalleryImages)
+    setSubmitError(error)
+    setGalleryFiles(error ? [] : files)
+    if (error) event.target.value = ''
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -41,6 +97,8 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
         .map((activity) => activity.trim())
         .filter(Boolean),
       mapUrl: mapUrl.trim(),
+      bannerFile,
+      galleryFiles,
     })
 
     setSubmitting(false)
@@ -207,22 +265,61 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
 
           <div className="space-y-2">
             <span className="text-xs font-bold text-main">Foto de fondo</span>
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-brand-blue/30 bg-brand-blue/6 text-center opacity-70">
-              <span className="flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-blue">
+            <label className="relative grid min-h-40 cursor-pointer place-items-center overflow-hidden rounded-xl border border-dashed border-brand-blue/40 bg-brand-blue/6 text-center transition hover:border-brand-blue">
+              {bannerPreview && (
+                <img
+                  src={bannerPreview}
+                  alt="Vista previa de foto de fondo"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              )}
+              {bannerPreview && <span className="absolute inset-0 bg-black/45" />}
+              <span className="relative flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-blue">
                 <LuCloudUpload className="h-6 w-6" />
-                Disponible al conectar R2
+                {bannerFile ? 'Cambiar foto de fondo' : 'Seleccionar foto WebP'}
+                <small className={bannerPreview ? 'text-white/80' : 'text-muted'}>
+                  Maximo 10 MB
+                </small>
               </span>
-            </div>
+              <input
+                type="file"
+                accept="image/webp,.webp"
+                onChange={handleBannerChange}
+                className="sr-only"
+              />
+            </label>
           </div>
 
           <div className="space-y-2">
             <span className="text-xs font-bold text-main">Galeria</span>
-            <div className="grid min-h-40 place-items-center rounded-xl border border-dashed border-brand-red/30 bg-brand-red/6 text-center opacity-70">
+            <label className="grid min-h-40 cursor-pointer place-items-center rounded-xl border border-dashed border-brand-red/40 bg-brand-red/6 text-center transition hover:border-brand-red">
               <span className="flex flex-col items-center gap-2 p-5 text-xs font-bold text-brand-red">
                 <LuCloudUpload className="h-6 w-6" />
-                Disponible al conectar R2
+                {galleryFiles.length > 0
+                  ? `${galleryFiles.length} imagenes seleccionadas`
+                  : 'Seleccionar galeria WebP'}
+                <small className="text-muted">Hasta 30 imagenes, 10 MB cada una</small>
               </span>
-            </div>
+              <input
+                type="file"
+                accept="image/webp,.webp"
+                multiple
+                onChange={handleGalleryChange}
+                className="sr-only"
+              />
+            </label>
+            {galleryPreviews.length > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {galleryPreviews.slice(0, 8).map((preview, index) => (
+                  <img
+                    key={preview}
+                    src={preview}
+                    alt={`Vista previa ${index + 1}`}
+                    className="aspect-square w-full rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {submitError && (

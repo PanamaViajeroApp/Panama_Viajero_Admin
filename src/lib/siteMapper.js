@@ -41,6 +41,10 @@ export function mapApiSite(site) {
     updated: formatUpdatedAt(site.updatedAt),
     updatedAt: site.updatedAt,
     image,
+    bannerImage: banner || null,
+    galleryItems: site.images
+      ?.filter((imageRecord) => imageRecord.imageType === 'gallery') || [],
+    imageRecords: site.images || [],
     gallery: galleryImages.length > 0 ? galleryImages : [image],
     activities: site.activities?.map((activity) => activity.name) || [],
     mapUrl: site.mapUrl,

@@ -9,6 +9,8 @@ function DraftEditorPage() {
     draftItems,
     updateDraft,
     publishDraft,
+    uploadSiteImage,
+    deleteSiteImage,
     contentLoading,
   } = useAdminData()
   const draft = draftItems.find((item) => item.id === draftId)
@@ -26,6 +28,10 @@ function DraftEditorPage() {
       site={draft}
       editable
       onSave={(updates) => updateDraft(draft.id, updates)}
+      onUploadImage={(file, imageType, sortOrder) => (
+        uploadSiteImage(draft.id, file, imageType, sortOrder)
+      )}
+      onDeleteImage={(imageId) => deleteSiteImage(draft.id, imageId)}
       onPublish={async (updates) => {
         const publishedSite = await publishDraft(draft.id, updates)
         if (publishedSite) navigate(`/sitios/${publishedSite.id}`)

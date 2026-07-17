@@ -85,9 +85,9 @@ function DashboardPage() {
           <div className="absolute -bottom-16 right-24 h-36 w-36 rounded-full bg-brand-red/35 blur-2xl" />
           <div className="relative flex h-full flex-col justify-between gap-8 sm:flex-row sm:items-end">
             <div className="max-w-xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">Siguiente etapa</p>
-              <h3 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">Conectar el contenido real sin cambiar la experiencia visual.</h3>
-              <p className="mt-4 max-w-lg text-sm leading-6 text-white/75">Cuando iniciemos el backend, este panel consumira D1 y R2 manteniendo esta estructura de navegacion.</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-white/65">Contenido centralizado</p>
+              <h3 className="mt-3 font-display text-3xl leading-tight sm:text-4xl">Gestiona textos e imagenes desde un solo lugar.</h3>
+              <p className="mt-4 max-w-lg text-sm leading-6 text-white/75">El panel sincroniza sitios, usuarios y permisos con D1, y administra fondos y galerias WebP mediante R2.</p>
             </div>
             <div className="flex gap-2">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><LuEye className="h-5 w-5" /></span>

@@ -9,6 +9,8 @@ function PublishedSitePage() {
     publishedItems,
     updatePublishedSite,
     moveSiteToTrash,
+    uploadSiteImage,
+    deleteSiteImage,
     contentLoading,
   } = useAdminData()
   const site = publishedItems.find((item) => item.id === siteId)
@@ -25,6 +27,10 @@ function PublishedSitePage() {
     <SiteDetailView
       site={site}
       onSave={(updates) => updatePublishedSite(site.id, updates)}
+      onUploadImage={(file, imageType, sortOrder) => (
+        uploadSiteImage(site.id, file, imageType, sortOrder)
+      )}
+      onDeleteImage={(imageId) => deleteSiteImage(site.id, imageId)}
       onDelete={async () => {
         const deletedSite = await moveSiteToTrash(site.id)
         if (deletedSite) navigate('/basurero')

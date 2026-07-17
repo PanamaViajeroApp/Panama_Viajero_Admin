@@ -120,17 +120,96 @@ function AdminDataProvider({ children }) {
     }
   }
 
-  const addDraft = (draft) => runContentAction(async () => {
-    const response = await apiRequest('/api/v1/admin/sites', {
-      method: 'POST',
-      body: JSON.stringify(draft),
-    })
-    const createdDraft = mapApiSite(response.site)
+  const replaceSiteInState = (site) => {
+    const mappedSite = mapApiSite(site)
+    const replaceMatching = (current) => current.map((item) => (
+      item.id === mappedSite.id ? mappedSite : item
+    ))
 
+    if (mappedSite.status === 'draft') {
+      setDraftItems(replaceMatching)
+    } else {
+      setPublishedItems(replaceMatching)
+    }
+
+    return mappedSite
+  }
+
+  const uploadImageRequest = async (
+    siteId,
+    file,
+    imageType,
+    sortOrder,
+  ) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('imageType', imageType)
+    formData.append('sortOrder', String(sortOrder))
+
+    const dimensions = await getImageDimensions(file)
+    if (dimensions) {
+      formData.append('width', String(dimensions.width))
+      formData.append('height', String(dimensions.height))
+    }
+
+    return apiRequest(`/api/v1/admin/sites/${siteId}/images`, {
+      method: 'POST',
+      body: formData,
+    })
+  }
+
+  const addDraft = async (draft) => {
+    const {
+      bannerFile,
+      galleryFiles = [],
+      ...siteData
+    } = draft
+    let createdResponse
+
+    try {
+      createdResponse = await apiRequest('/api/v1/admin/sites', {
+        method: 'POST',
+        body: JSON.stringify(siteData),
+      })
+    } catch (error) {
+      setContentError(getContentErrorMessage(error))
+      return null
+    }
+
+    let createdDraft = mapApiSite(createdResponse.site)
     setDraftItems((current) => [createdDraft, ...current])
     mergeActivityCatalog(createdDraft)
+
+    try {
+      if (bannerFile) {
+        const bannerResponse = await uploadImageRequest(
+          createdDraft.id,
+          bannerFile,
+          'banner',
+          0,
+        )
+        createdDraft = replaceSiteInState(bannerResponse.site)
+      }
+
+      for (let index = 0; index < galleryFiles.length; index += 1) {
+        const galleryResponse = await uploadImageRequest(
+          createdDraft.id,
+          galleryFiles[index],
+          'gallery',
+          index,
+        )
+        createdDraft = replaceSiteInState(galleryResponse.site)
+      }
+
+      setContentError('')
+    } catch (error) {
+      setContentError(
+        `El borrador fue creado, pero algunas imagenes no se subieron. ${getContentErrorMessage(error)}`,
+      )
+    }
+
     return createdDraft
-  })
+  }
 
   const updateDraft = (id, updates) => runContentAction(async () => {
     const response = await apiRequest(`/api/v1/admin/sites/${id}`, {
@@ -214,6 +293,29 @@ function AdminDataProvider({ children }) {
     return true
   })
 
+  const uploadSiteImage = (
+    siteId,
+    file,
+    imageType,
+    sortOrder = 0,
+  ) => runContentAction(async () => {
+    const response = await uploadImageRequest(
+      siteId,
+      file,
+      imageType,
+      sortOrder,
+    )
+    return replaceSiteInState(response.site)
+  })
+
+  const deleteSiteImage = (siteId, imageId) => runContentAction(async () => {
+    const response = await apiRequest(
+      `/api/v1/admin/sites/${siteId}/images/${imageId}`,
+      { method: 'DELETE' },
+    )
+    return replaceSiteInState(response.site)
+  })
+
   const clearContentError = () => {
     setContentError('')
   }
@@ -290,6 +392,8 @@ function AdminDataProvider({ children }) {
         moveSiteToTrash,
         restoreSite,
         deleteSiteForever,
+        uploadSiteImage,
+        deleteSiteImage,
         clearContentError,
         addUser,
         deleteUser,
@@ -320,5 +424,26 @@ function getContentErrorMessage(error) {
     return 'Verifica los datos del formulario e inténtalo nuevamente.'
   }
 
+  if (error.status === 413) {
+    return 'La imagen supera el limite de 10 MB.'
+  }
+
+  if (error.status === 415) {
+    return 'Solo se permiten imagenes WebP validas.'
+  }
+
   return 'No se pudo sincronizar el contenido con la base de datos.'
+}
+
+async function getImageDimensions(file) {
+  if (typeof createImageBitmap !== 'function') return null
+
+  try {
+    const bitmap = await createImageBitmap(file)
+    const dimensions = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return dimensions
+  } catch {
+    return null
+  }
 }

@@ -32,4 +32,6 @@ yarn build
   individuales.
 - Las secciones de usuarios y permisos muestran una vista restringida cuando
   la sesion no tiene la autorizacion correspondiente.
-- La seleccion de imagenes permanece deshabilitada hasta conectar R2.
+- La creacion y edicion de sitios permite subir fondos y galerias WebP a R2.
+- Cada imagen puede pesar hasta 10 MB y cada sitio admite hasta 30 imagenes de
+  galeria.

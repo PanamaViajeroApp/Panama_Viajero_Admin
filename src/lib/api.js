@@ -8,12 +8,18 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest(path, options = {}) {
+  const formDataBody = (
+    typeof FormData !== 'undefined'
+    && options.body instanceof FormData
+  )
   const response = await fetch(path, {
     ...options,
     credentials: 'include',
     headers: {
       ...options.headers,
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.body && !formDataBody
+        ? { 'Content-Type': 'application/json' }
+        : {}),
     },
   })
   const payload = await response.json().catch(() => null)
