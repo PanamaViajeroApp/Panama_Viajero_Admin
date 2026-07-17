@@ -17,6 +17,7 @@ import {
 } from 'react-icons/lu'
 import logoHorizontal from '../assets/brand/logo-horizontal.svg'
 import { useAdminData } from '../context/adminDataContext.js'
+import { useAuth } from '../context/authContext.js'
 
 const navigation = [
   {
@@ -49,7 +50,7 @@ const pageNames = {
   '/permisos': 'Permisos',
 }
 
-function Sidebar({ onNavigate, draftCount, trashCount }) {
+function Sidebar({ onNavigate, draftCount, trashCount, username, onLogout }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-24 items-center border-b border-app px-6 justify-center">
@@ -114,9 +115,14 @@ function Sidebar({ onNavigate, draftCount, trashCount }) {
             <img src="/favicon.svg" alt="" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-main">Administrador</p>
+            <p className="truncate text-sm font-bold text-main">{username}</p>
           </div>
-          <button type="button" className="rounded-lg p-2 text-muted transition hover:bg-[var(--surface-soft)] hover:text-brand-red" aria-label="Cerrar sesion">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="cursor-pointer rounded-lg p-2 text-muted transition hover:bg-[var(--surface-soft)] hover:text-brand-red"
+            aria-label="Cerrar sesion"
+          >
             <LuLogOut className="h-4 w-4" />
           </button>
         </div>
@@ -128,6 +134,7 @@ function Sidebar({ onNavigate, draftCount, trashCount }) {
 function AdminShell() {
   const location = useLocation()
   const { draftItems, trashItems } = useAdminData()
+  const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('pv-admin-theme') || 'dark')
 
@@ -143,7 +150,12 @@ function AdminShell() {
   return (
     <div className="admin-grid min-h-screen text-main">
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-app bg-[var(--sidebar-bg)] backdrop-blur-xl lg:block">
-        <Sidebar draftCount={draftItems.length} trashCount={trashItems.length} />
+        <Sidebar
+          draftCount={draftItems.length}
+          trashCount={trashItems.length}
+          username={user.username}
+          onLogout={logout}
+        />
       </aside>
 
       <div
@@ -172,6 +184,8 @@ function AdminShell() {
           <Sidebar
             draftCount={draftItems.length}
             trashCount={trashItems.length}
+            username={user.username}
+            onLogout={logout}
             onNavigate={() => setMobileOpen(false)}
           />
         </aside>

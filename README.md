@@ -21,4 +21,9 @@ yarn build
 - Interfaz responsive creada con React, Vite y Tailwind CSS.
 - Tema oscuro activo por defecto y tema claro opcional.
 - Secciones visuales para sitios, borradores, usuarios y permisos.
-- Los datos son demostrativos; autenticacion, D1, R2 y la API se conectaran en la etapa de backend.
+- Autenticacion conectada a la API mediante `/api/v1/auth/*`.
+- En produccion, `functions/api/[[path]].js` requiere un Service Binding llamado
+  `API_SERVICE` que apunte al Worker de Panama Viajero.
+- En desarrollo, Vite envia `/api` a `http://127.0.0.1:8787`.
+- Los datos de contenido siguen siendo demostrativos hasta implementar sus
+  endpoints CRUD en D1 y el almacenamiento de imagenes en R2.
