@@ -93,10 +93,12 @@ function AdminDataProvider({ children }) {
         current.map((activity) => [activity.name.toLowerCase(), activity]),
       )
 
-      site.activities.forEach((activityName) => {
+      site.activities.forEach((siteActivity) => {
+        const activityName = siteActivity.name
+
         if (!byName.has(activityName.toLowerCase())) {
           byName.set(activityName.toLowerCase(), {
-            id: activityName,
+            id: siteActivity.id || activityName,
             name: activityName,
             iconKey: 'compass',
           })

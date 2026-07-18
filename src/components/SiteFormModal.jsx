@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   LuCloudUpload,
   LuMapPinned,
+  LuPlus,
+  LuTrash2,
   LuX,
 } from 'react-icons/lu'
 
@@ -17,7 +19,7 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [location, setLocation] = useState('')
   const [previewDescription, setPreviewDescription] = useState('')
   const [description, setDescription] = useState('')
-  const [activities, setActivities] = useState('')
+  const [activities, setActivities] = useState([])
   const [mapUrl, setMapUrl] = useState(defaultMapUrl)
   const [bannerFile, setBannerFile] = useState(null)
   const [galleryFiles, setGalleryFiles] = useState([])
@@ -79,6 +81,31 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
     if (error) event.target.value = ''
   }
 
+  const addActivity = () => {
+    setActivities((current) => [
+      ...current,
+      {
+        localId: crypto.randomUUID(),
+        name: '',
+        description: '',
+      },
+    ])
+  }
+
+  const updateActivity = (localId, field, value) => {
+    setActivities((current) => current.map((activity) => (
+      activity.localId === localId
+        ? { ...activity, [field]: value }
+        : activity
+    )))
+  }
+
+  const removeActivity = (localId) => {
+    setActivities((current) => (
+      current.filter((activity) => activity.localId !== localId)
+    ))
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setSubmitting(true)
@@ -94,10 +121,10 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
       location: location.trim(),
       previewDescription: previewDescription.trim(),
       description: description.trim(),
-      activities: activities
-        .split(',')
-        .map((activity) => activity.trim())
-        .filter(Boolean),
+      activities: activities.map((activity) => ({
+        name: activity.name.trim(),
+        description: activity.description.trim(),
+      })),
       mapUrl: mapUrl.trim(),
       bannerFile,
       galleryFiles,
@@ -259,16 +286,84 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
             />
           </label>
 
-          <label className="space-y-2 lg:col-span-2">
-            <span className="text-xs font-bold text-main">Actividades</span>
-            <input
-              value={activities}
-              onChange={(event) => setActivities(event.target.value)}
-              className="surface-raised h-12 w-full rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
-              placeholder="Senderismo, fotografia, naturaleza"
-            />
-            <span className="block text-[11px] text-muted">Separa cada actividad con una coma.</span>
-          </label>
+          <fieldset className="space-y-3 lg:col-span-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <legend className="text-xs font-bold text-main">Actividades</legend>
+                <p className="mt-1 text-[11px] text-muted">
+                  Cada actividad tendrá su propia descripción en el sitio.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addActivity}
+                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-brand-blue/35 bg-brand-blue/10 px-4 text-xs font-bold text-main transition hover:border-brand-blue"
+              >
+                <LuPlus className="h-4 w-4 text-brand-blue" />
+                Añadir actividad
+              </button>
+            </div>
+
+            {activities.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-app bg-[var(--surface-raised)] px-4 py-6 text-center text-xs text-muted">
+                No se han añadido actividades.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activities.map((activity, index) => (
+                  <div
+                    key={activity.localId}
+                    className="grid gap-3 rounded-xl border border-app bg-[var(--surface-raised)] p-4 sm:grid-cols-[0.7fr_1.3fr_auto]"
+                  >
+                    <label className="space-y-2">
+                      <span className="text-[11px] font-bold text-main">
+                        Actividad {index + 1}
+                      </span>
+                      <input
+                        required
+                        maxLength="80"
+                        value={activity.name}
+                        onChange={(event) => updateActivity(
+                          activity.localId,
+                          'name',
+                          event.target.value,
+                        )}
+                        className="h-11 w-full rounded-lg border border-app bg-[var(--surface)] px-3 text-sm text-main outline-none focus:border-brand-blue"
+                        placeholder="Ejemplo: Senderismo"
+                      />
+                    </label>
+
+                    <label className="space-y-2">
+                      <span className="text-[11px] font-bold text-main">Descripción</span>
+                      <textarea
+                        required
+                        minLength="10"
+                        maxLength="1000"
+                        rows="3"
+                        value={activity.description}
+                        onChange={(event) => updateActivity(
+                          activity.localId,
+                          'description',
+                          event.target.value,
+                        )}
+                        className="w-full resize-none rounded-lg border border-app bg-[var(--surface)] p-3 text-sm leading-5 text-main outline-none focus:border-brand-blue"
+                        placeholder="Describe lo que vivirá el visitante."
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => removeActivity(activity.localId)}
+                      className="grid h-10 w-10 cursor-pointer place-items-center self-end rounded-lg border border-brand-red/30 text-brand-red transition hover:bg-brand-red/10 sm:mb-0.5"
+                      aria-label={`Eliminar actividad ${index + 1}`}
+                    >
+                      <LuTrash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </fieldset>
 
           <label className="space-y-2 lg:col-span-2">
             <span className="flex items-center gap-2 text-xs font-bold text-main">

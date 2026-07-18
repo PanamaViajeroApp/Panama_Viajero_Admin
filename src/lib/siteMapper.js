@@ -47,7 +47,12 @@ export function mapApiSite(site) {
       ?.filter((imageRecord) => imageRecord.imageType === 'gallery') || [],
     imageRecords: site.images || [],
     gallery: galleryImages.length > 0 ? galleryImages : [image],
-    activities: site.activities?.map((activity) => activity.name) || [],
+    activities: site.activities?.map((activity) => ({
+      id: activity.id,
+      name: activity.name,
+      description: activity.description || '',
+      iconKey: activity.iconKey,
+    })) || [],
     mapUrl: site.mapUrl,
     zone: site.zone ? zoneLabels[site.zone] : '',
     zoneKey: site.zone,

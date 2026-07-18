@@ -35,6 +35,7 @@ function SiteDetailView({
   const [description, setDescription] = useState(site.description)
   const [activities, setActivities] = useState(site.activities)
   const [newActivity, setNewActivity] = useState('')
+  const [newActivityDescription, setNewActivityDescription] = useState('')
   const [showActivityInput, setShowActivityInput] = useState(false)
   const [mapUrl, setMapUrl] = useState(site.mapUrl)
   const [mapPreviewUrl, setMapPreviewUrl] = useState(site.mapUrl)
@@ -90,17 +91,42 @@ function SiteDetailView({
   }
 
   const addActivity = () => {
-    const activity = newActivity.trim()
+    const name = newActivity.trim()
+    const activityDescription = newActivityDescription.trim()
 
-    if (!activity || activities.includes(activity)) return
+    if (
+      !name
+      || activityDescription.length < 10
+      || activities.some((activity) => (
+        activity.name.toLowerCase() === name.toLowerCase()
+      ))
+    ) return
 
-    setActivities((current) => [...current, activity])
+    setActivities((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        name,
+        description: activityDescription,
+      },
+    ])
     setNewActivity('')
+    setNewActivityDescription('')
     setShowActivityInput(false)
   }
 
-  const removeActivity = (activityToRemove) => {
-    setActivities((current) => current.filter((activity) => activity !== activityToRemove))
+  const updateActivity = (activityId, field, value) => {
+    setActivities((current) => current.map((activity) => (
+      activity.id === activityId
+        ? { ...activity, [field]: value }
+        : activity
+    )))
+  }
+
+  const removeActivity = (activityId) => {
+    setActivities((current) => (
+      current.filter((activity) => activity.id !== activityId)
+    ))
   }
 
   const validateImageFiles = (files, maximum = 30) => {
@@ -322,36 +348,88 @@ function SiteDetailView({
               </div>
 
               {showActivityInput && isEditing && (
-                <div className="mt-4 flex flex-col gap-2 rounded-xl border border-app bg-[var(--surface-raised)] p-3 sm:flex-row">
+                <div className="mt-4 grid gap-3 rounded-xl border border-app bg-[var(--surface-raised)] p-4 sm:grid-cols-[0.7fr_1.3fr_auto]">
                   <input
                     value={newActivity}
                     onChange={(event) => setNewActivity(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') addActivity()
-                    }}
                     className="h-10 min-w-0 flex-1 rounded-lg border border-app bg-[var(--surface)] px-3 text-sm text-main outline-none focus:border-brand-blue"
                     placeholder="Nombre de la actividad"
                     autoFocus
                   />
-                  <button type="button" onClick={addActivity} className="h-10 cursor-pointer rounded-lg bg-brand-blue px-4 text-xs font-bold text-white">
+                  <textarea
+                    value={newActivityDescription}
+                    onChange={(event) => setNewActivityDescription(event.target.value)}
+                    rows="3"
+                    maxLength="1000"
+                    className="min-w-0 resize-none rounded-lg border border-app bg-[var(--surface)] p-3 text-sm leading-5 text-main outline-none focus:border-brand-blue"
+                    placeholder="Descripción de la actividad"
+                  />
+                  <div className="flex gap-2 sm:flex-col">
+                    <button
+                      type="button"
+                      onClick={addActivity}
+                      disabled={!newActivity.trim() || newActivityDescription.trim().length < 10}
+                      className="h-10 cursor-pointer rounded-lg bg-brand-blue px-4 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                    >
                     Agregar
-                  </button>
-                  <button type="button" onClick={() => setShowActivityInput(false)} className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg border border-app text-muted">
-                    <LuX className="h-4 w-4" />
-                  </button>
+                    </button>
+                    <button type="button" onClick={() => setShowActivityInput(false)} className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg border border-app text-muted">
+                      <LuX className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               )}
 
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {activities.map((activity) => (
-                  <span key={activity} className="inline-flex items-center gap-2 rounded-full border border-brand-blue/30 bg-brand-blue/12 px-4 py-2 text-xs font-bold text-main">
-                    {activity}
+                  <article
+                    key={activity.id}
+                    className="rounded-xl border border-brand-blue/25 bg-brand-blue/8 p-4"
+                  >
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <input
+                          value={activity.name}
+                          maxLength="80"
+                          onChange={(event) => updateActivity(
+                            activity.id,
+                            'name',
+                            event.target.value,
+                          )}
+                          className="h-10 w-full rounded-lg border border-app bg-[var(--surface)] px-3 text-sm font-bold text-main outline-none focus:border-brand-blue"
+                        />
+                        <textarea
+                          value={activity.description}
+                          maxLength="1000"
+                          rows="4"
+                          onChange={(event) => updateActivity(
+                            activity.id,
+                            'description',
+                            event.target.value,
+                          )}
+                          className="w-full resize-none rounded-lg border border-app bg-[var(--surface)] p-3 text-xs leading-5 text-main outline-none focus:border-brand-blue"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <h3 className="text-sm font-bold text-main">{activity.name}</h3>
+                        <p className="mt-2 text-xs leading-5 text-muted">
+                          {activity.description || 'Sin descripción.'}
+                        </p>
+                      </>
+                    )}
                     {isEditing && (
-                      <button type="button" onClick={() => removeActivity(activity)} className="cursor-pointer text-muted transition hover:text-brand-red" aria-label={`Eliminar ${activity}`}>
+                      <button
+                        type="button"
+                        onClick={() => removeActivity(activity.id)}
+                        className="mt-3 inline-flex cursor-pointer items-center gap-1.5 text-xs font-bold text-brand-red"
+                        aria-label={`Eliminar ${activity.name}`}
+                      >
                         <LuX className="h-3.5 w-3.5" />
+                        Eliminar
                       </button>
                     )}
-                  </span>
+                  </article>
                 ))}
               </div>
             </section>
