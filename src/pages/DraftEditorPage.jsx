@@ -9,6 +9,7 @@ function DraftEditorPage() {
     draftItems,
     updateDraft,
     publishDraft,
+    provinceItems,
     uploadSiteImage,
     deleteSiteImage,
     contentLoading,
@@ -27,6 +28,7 @@ function DraftEditorPage() {
     <SiteDetailView
       site={draft}
       editable
+      provinceOptions={provinceItems}
       onSave={(updates) => updateDraft(draft.id, updates)}
       onUploadImage={(file, imageType, sortOrder) => (
         uploadSiteImage(draft.id, file, imageType, sortOrder)

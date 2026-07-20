@@ -19,6 +19,7 @@ import { Link } from 'react-router-dom'
 function SiteDetailView({
   site,
   editable = false,
+  provinceOptions = [],
   onSave,
   onPublish,
   onDelete,
@@ -28,6 +29,11 @@ function SiteDetailView({
   const backPath = editable ? '/borradores' : '/sitios'
   const [isEditing, setIsEditing] = useState(editable)
   const [name, setName] = useState(site.name)
+  const [provinceId, setProvinceId] = useState(site.provinceId || '')
+  const [zone, setZone] = useState(site.zoneKey || '')
+  const [isPacificRiviera, setIsPacificRiviera] = useState(
+    Boolean(site.isPacificRiviera),
+  )
   const [location, setLocation] = useState(site.location)
   const [previewDescription, setPreviewDescription] = useState(
     site.previewDescription || site.description,
@@ -44,9 +50,21 @@ function SiteDetailView({
   const [actionPending, setActionPending] = useState(false)
   const [imagePending, setImagePending] = useState(false)
   const [imageError, setImageError] = useState('')
+  const selectedProvince = provinceOptions.find(
+    (province) => province.id === provinceId,
+  )
+  const destinationSelectionInvalid = editable && (
+    !provinceId
+    || (selectedProvince?.zoneMode === 'colon_coast' && !zone)
+  )
 
   const getUpdates = () => ({
     name: name.trim(),
+    province: provinceId,
+    zone: selectedProvince?.zoneMode === 'colon_coast' ? zone : null,
+    isPacificRiviera: selectedProvince?.supportsPacificRiviera
+      ? isPacificRiviera
+      : false,
     location: location.trim(),
     previewDescription: previewDescription.trim(),
     description: description.trim(),
@@ -193,7 +211,7 @@ function SiteDetailView({
           <button
             type="button"
             onClick={handlePrimaryAction}
-            disabled={actionPending}
+            disabled={actionPending || destinationSelectionInvalid}
             className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-red px-5 text-sm font-bold text-white transition hover:bg-[#df3858] disabled:cursor-wait disabled:opacity-65"
           >
             {isEditing ? <LuSave className="h-4 w-4" /> : <LuPencil className="h-4 w-4" />}
@@ -204,7 +222,7 @@ function SiteDetailView({
             <button
               type="button"
               onClick={() => setShowPublishConfirm(true)}
-              disabled={actionPending}
+              disabled={actionPending || destinationSelectionInvalid}
               className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-xl bg-brand-blue px-5 text-sm font-bold text-white transition hover:bg-brand-blue/85"
             >
               <LuSend className="h-4 w-4" />
@@ -302,6 +320,66 @@ function SiteDetailView({
 
         <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.15fr_0.85fr]">
           <div className="space-y-7">
+            {editable && (
+              <section className="rounded-2xl border border-app bg-[var(--surface-raised)] p-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-red">
+                  Provincia
+                </p>
+                <select
+                  required
+                  value={provinceId}
+                  onChange={(event) => {
+                    const nextProvince = provinceOptions.find(
+                      (province) => province.id === event.target.value,
+                    )
+                    setProvinceId(event.target.value)
+                    if (nextProvince?.zoneMode !== 'colon_coast') setZone('')
+                    if (!nextProvince?.supportsPacificRiviera) {
+                      setIsPacificRiviera(false)
+                    }
+                  }}
+                  className="mt-4 h-12 w-full cursor-pointer rounded-xl border border-app bg-[var(--surface)] px-4 text-sm font-bold text-main outline-none focus:border-brand-blue"
+                >
+                  <option value="" disabled>Selecciona una provincia</option>
+                  {provinceOptions.map((province) => (
+                    <option key={province.id} value={province.id}>
+                      {province.name}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedProvince?.zoneMode === 'colon_coast' && (
+                  <label className="mt-4 block space-y-2">
+                    <span className="text-xs font-bold text-main">
+                      Zona de Colon
+                    </span>
+                    <select
+                      required
+                      value={zone}
+                      onChange={(event) => setZone(event.target.value)}
+                      className="h-12 w-full cursor-pointer rounded-xl border border-app bg-[var(--surface)] px-4 text-sm text-main outline-none focus:border-brand-blue"
+                    >
+                      <option value="" disabled>Selecciona una zona</option>
+                      <option value="costa_arriba">Costa Arriba</option>
+                      <option value="costa_abajo">Costa Abajo</option>
+                    </select>
+                  </label>
+                )}
+
+                {selectedProvince?.supportsPacificRiviera && (
+                  <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-app bg-[var(--surface)] p-4 text-sm font-bold text-main">
+                    <input
+                      type="checkbox"
+                      checked={isPacificRiviera}
+                      onChange={(event) => setIsPacificRiviera(event.target.checked)}
+                      className="h-4 w-4 accent-[#4956a2]"
+                    />
+                    Pertenece a Riviera Pacifica
+                  </label>
+                )}
+              </section>
+            )}
+
             <section className="rounded-2xl border border-app bg-[var(--surface-raised)] p-5">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-blue">Descripcion inicial</p>
               {isEditing ? (

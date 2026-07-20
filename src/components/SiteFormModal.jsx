@@ -13,7 +13,7 @@ const maxGalleryImages = 30
 
 function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
   const [name, setName] = useState('')
-  const [provinceId, setProvinceId] = useState(provinceOptions[0]?.id || '')
+  const [provinceId, setProvinceId] = useState('')
   const [zone, setZone] = useState('')
   const [isPacificRiviera, setIsPacificRiviera] = useState(false)
   const [location, setLocation] = useState('')
@@ -179,6 +179,7 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
           <label className="space-y-2">
             <span className="text-xs font-bold text-main">Provincia</span>
             <select
+              required
               value={provinceId}
               onChange={(event) => {
                 const nextProvince = provinceOptions.find(
@@ -192,6 +193,7 @@ function SiteFormModal({ provinceOptions, onClose, onSubmit }) {
               }}
               className="surface-raised h-12 w-full cursor-pointer rounded-xl border border-app px-4 text-sm text-main outline-none focus:border-brand-blue"
             >
+              <option value="" disabled>Selecciona una provincia</option>
               {provinceOptions.map((province) => (
                 <option key={province.id} value={province.id}>{province.name}</option>
               ))}
